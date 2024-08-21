@@ -5,6 +5,8 @@ var gl;
 var theta = 0.0;
 var thetaLoc, colorLoc;
 
+var theta2 = 0.0;
+
 var delay = 100;
 var direction = true;
 var vBuffer;
@@ -15,6 +17,7 @@ var program;
 var color_vals = [Math.random(), Math.random(), Math.random(), 1.];
 
 var num_triangles = 0;
+var num_squares = 0;
 
 // Your GL program starts after the HTML page is loaded, indicated
 // by the onload event
@@ -73,26 +76,26 @@ function getSquareVertices() {
 
 	// triangle 1
 	vertices = [];
-	vertices.push([ 0.0,  0.2]); 
-	vertices.push([-0.2,  0.0]); 
-	vertices.push([ 0.0, -0.2]); 
+	vertices.push([ 0.0,  0.3]); 
+	vertices.push([-0.3,  0.0]); 
+	vertices.push([ 0.0, -0.3]); 
 
 	// triangle 2
-	vertices.push([ 0.0,  0.2]); 
-	vertices.push([ 0.0, -0.2]); 
-	vertices.push([ 0.2,  0.0]); 
+	vertices.push([ 0.0,  0.3]); 
+	vertices.push([ 0.0, -0.3]); 
+	vertices.push([ 0.3,  0.0]); 
 
-	vertices.push([ 0.0,  0.2]); 
-	vertices.push([-0.2,  0.0]); 
-	vertices.push([ 0.0, -0.2]); 
+	vertices.push([ 0.0,  0.1]); 
+	vertices.push([-0.1,  0.0]); 
+	vertices.push([ 0.0, -0.1]); 
 
 	// triangle 2
-	vertices.push([ 0.0,  0.2]); 
-	vertices.push([ 0.0, -0.2]); 
-	vertices.push([ 0.2,  0.0]); 
+	vertices.push([ 0.0,  0.1]); 
+	vertices.push([ 0.0, -0.1]); 
+	vertices.push([ 0.1,  0.0]); 
 	
-
-	num_triangles = 2;
+	num_triangles = vertices.length/3;
+	num_squares = num_triangles/2;
 
 	return vertices;
 }
@@ -137,6 +140,8 @@ function render() {
 	// rotate the square by a small angle
 	theta += 0.1;
 	counter++;
+
+	theta2 += 0.5;
 	
 	// send the theta value to the shader, where the rotation is
 	// performed
@@ -152,8 +157,11 @@ function render() {
 	gl.uniform4fv (colorLoc, color_vals)
 
 	// draw the square as a triangle strip
-    gl.drawArrays(gl.TRIANGLES, 0, num_triangles*3);
-    gl.drawArrays(gl.TRIANGLES, 6, num_triangles*3);
+    gl.drawArrays(gl.TRIANGLES, 0, num_triangles/num_squares*3);
+    
+	// Draws second square using a different rotation speed
+	gl.uniform1f(thetaLoc, theta2);
+	gl.drawArrays(gl.TRIANGLES, 6, num_triangles/num_squares*3);
 
     setTimeout(
         function (){requestAnimFrame(render);}, delay
