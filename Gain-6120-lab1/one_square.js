@@ -73,14 +73,24 @@ function getSquareVertices() {
 
 	// triangle 1
 	vertices = [];
-	vertices.push([ 0.0,  0.3]); 
-	vertices.push([-0.3,  0.0]); 
-	vertices.push([ 0.0, -0.3]); 
+	vertices.push([ 0.0,  0.2]); 
+	vertices.push([-0.2,  0.0]); 
+	vertices.push([ 0.0, -0.2]); 
 
 	// triangle 2
-	vertices.push([ 0.0,  0.3]); 
-	vertices.push([ 0.0, -0.3]); 
-	vertices.push([ 0.3,  0.0]); 
+	vertices.push([ 0.0,  0.2]); 
+	vertices.push([ 0.0, -0.2]); 
+	vertices.push([ 0.2,  0.0]); 
+
+	vertices.push([ 0.0,  0.2]); 
+	vertices.push([-0.2,  0.0]); 
+	vertices.push([ 0.0, -0.2]); 
+
+	// triangle 2
+	vertices.push([ 0.0,  0.2]); 
+	vertices.push([ 0.0, -0.2]); 
+	vertices.push([ 0.2,  0.0]); 
+	
 
 	num_triangles = 2;
 
@@ -143,6 +153,7 @@ function render() {
 
 	// draw the square as a triangle strip
     gl.drawArrays(gl.TRIANGLES, 0, num_triangles*3);
+    gl.drawArrays(gl.TRIANGLES, 6, num_triangles*3);
 
     setTimeout(
         function (){requestAnimFrame(render);}, delay
