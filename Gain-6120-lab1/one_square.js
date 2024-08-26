@@ -15,6 +15,7 @@ var program;
 
 // use a random color (RGB)
 var color_vals = [Math.random(), Math.random(), Math.random(), 1.];
+var color_vals2 = [Math.random(), Math.random(), Math.random(), 1.];
 
 var num_triangles = 0;
 var num_squares = 0;
@@ -143,15 +144,17 @@ function render() {
 
 	theta2 += 0.5;
 	
-	// send the theta value to the shader, where the rotation is
-	// performed
-	gl.uniform1f(thetaLoc, theta);
-
+	
 	// set the color to change it every 10 frames
 	counter++;
 	if (counter%10 == 0) {
 		color_vals = [Math.random(), Math.random(), Math.random(), 1.];
+		color_vals2 = [Math.random(), Math.random(), Math.random(), 1.];
 	}
+	
+	// send the theta value to the shader, where the rotation is
+	// performed
+	gl.uniform1f(thetaLoc, theta);
 
 	// set the color in the shader
 	gl.uniform4fv (colorLoc, color_vals)
@@ -159,8 +162,10 @@ function render() {
 	// draw the square as a triangle strip
     gl.drawArrays(gl.TRIANGLES, 0, num_triangles/num_squares*3);
     
-	// Draws second square using a different rotation speed
+
+	// Draws second square using a different rotation speed and color
 	gl.uniform1f(thetaLoc, theta2);
+	gl.uniform4fv(colorLoc, color_vals2);
 	gl.drawArrays(gl.TRIANGLES, 6, num_triangles/num_squares*3);
 
     setTimeout(
