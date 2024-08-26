@@ -86,14 +86,14 @@ function getSquareVertices() {
 	vertices.push([ 0.0, -0.3]); 
 	vertices.push([ 0.3,  0.0]); 
 
-	vertices.push([ 0.0,  0.1]); 
-	vertices.push([-0.1,  0.0]); 
-	vertices.push([ 0.0, -0.1]); 
+	vertices.push([ 0.5,  0.1]); 
+	vertices.push([ 0.4,  0.0]); 
+	vertices.push([ 0.5, -0.1]); 
 
 	// triangle 2
-	vertices.push([ 0.0,  0.1]); 
-	vertices.push([ 0.0, -0.1]); 
-	vertices.push([ 0.1,  0.0]); 
+	vertices.push([ 0.5,  0.1]); 
+	vertices.push([ 0.5, -0.1]); 
+	vertices.push([ 0.6,  0.0]); 
 	
 	num_triangles = vertices.length/3;
 	num_squares = num_triangles/2;
@@ -142,7 +142,7 @@ function render() {
 	theta += 0.1;
 	counter++;
 
-	theta2 += 0.5;
+	theta2 += 0.4;
 	
 	
 	// set the color to change it every 10 frames
