@@ -142,7 +142,7 @@ function render() {
 	theta += 0.1;
 	counter++;
 
-	theta2 += 0.4;
+	theta2 -= 0.4;
 	
 	
 	// set the color to change it every 10 frames
