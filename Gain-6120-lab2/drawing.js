@@ -63,6 +63,9 @@ window.onload = function init() {
 function updateBuffers(vertices) {
 	// make the needed GL calls to tranfer vertices
 
+	vertices = [[0,0,0]];
+	num_points = vertices.length;
+
 	// bind the buffer, i.e. this becomes the current buffer
 	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
 
@@ -79,16 +82,16 @@ function updateBuffers(vertices) {
 
 }
 
-counter = 0;
 function render() {
 	// clear the display with the background color
     gl.clear( gl.COLOR_BUFFER_BIT );
 	
+	color_vals = [Math.random(), Math.random(), Math.random(), 1.];
 
 	// set the color in the shader
-	//gl.uniform4fv (colorLoc, color_vals)
+	gl.uniform4fv (colorLoc, color_vals)
 
-    //gl.drawArrays(gl.POINTS, 0, num_points);
+    gl.drawArrays(gl.POINTS, 0, num_points);
     
 
     setTimeout(
