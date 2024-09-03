@@ -6,6 +6,8 @@ var gl;
 var vertices = [];
 var num_points = 0;
 
+var colors = [];
+
 var delay = 10;
 var direction = true;
 
@@ -79,7 +81,11 @@ window.onload = function init() {
     vBuffer = gl.createBuffer();
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, (5000*4), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, (5000*4*2), gl.STATIC_DRAW);
+
+	colorBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, (5000*4*4), gl.STATIC_DRAW);
 
 	// buffer calls to send vertex data to the shader
 	//updateBuffers(vertices);
@@ -91,51 +97,58 @@ window.onload = function init() {
 function updateBuffers() {
 	// make the needed GL calls to tranfer vertices
 
-	
+	let pc = (num_points > 0) ? num_points-1 : 0;
+
+	//#region Vertex Buffer
 	// bind the buffer, i.e. this becomes the current buffer
 	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
 
-
 	//gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
-	let pc = (num_points > 0) ? num_points-1 : 0;
 
 	gl.bufferSubData(gl.ARRAY_BUFFER, pc * 2 * 4, flatten(vertices));
 	
-	console.log(`pc: ${pc}  verts: ${vertices}`);
-
+//	console.log(`pc: ${pc}  verts: ${vertices}`);
 
 	var vPosition = gl.getAttribLocation( program, "vPosition");
 
 	// specify the format of the vertex data - here it is a float with
 	// 2 coordinates per vertex - these are its attributes
-	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, true, 0, 0);
 
 	// enable the vertex attribute array 
 	gl.enableVertexAttribArray(vPosition);
+
+	//#endregion
+
+	//#region Color Buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, pc * 4 * 4, flatten(colors));
+
+	var vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vColor);
+	//#endregion
 
 }
 
 var counter = 0;
 function render() {
-	counter++;
 
 	if (mouse_is_down) {
 		temp = getMousePosition(mouse_event);
 		vertices = temp;
+		colors = rcolor();
 		
 		num_points += vertices.length;
-		console.log(`numpoints: ${num_points}`);
 		updateBuffers();
 	}
 
 	// clear the display with the background color
     gl.clear( gl.COLOR_BUFFER_BIT );
 	
-	if (counter%50 == 0)
-		color_vals = [Math.random(), Math.random(), Math.random(), 1.];
 
 	// set the color in the shader
-	gl.uniform4fv (colorLoc, color_vals);
+	//gl.uniform4fv (colorLoc, color_vals);
 
     gl.drawArrays(gl.POINTS, 0, num_points);
     
