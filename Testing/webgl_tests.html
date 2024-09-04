@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+
+<title>Simple Anim</title>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec2 vPosition;
+
+// varying type variable to share with fragment shader, as the color
+// will be sent to the fragment shader
+//varying vec4 fColor;
+
+void main() {
+	gl_Position.x = vPosition.x;
+    gl_Position.y = vPosition.y;
+	gl_Position.z = 0.0;
+	gl_Position.w = 1.0;
+
+	gl_PointSize = 10.0;
+
+	// pass the color to the fragment shader
+	//fColor = vColor;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+	precision mediump float;
+	
+	uniform vec2 u_resolution;
+	uniform float u_time;
+	
+	void main() {
+		float norm_time = u_time/255.0;
+
+		vec2 st = gl_FragCoord.xy/u_resolution;
+		gl_FragColor = vec4(st.x,st.y,norm_time,1.0);
+	}
+
+</script>
+
+<script type="text/javascript">
+
+// ************************************************************
+// this file has  a set of utility functions useful in WebGL programs
+//
+// Creator: Kalpathi Subramanian
+// Sources : various
+// Date: 12/23/21
+//
+// ************************************************************
+function initWebGL (canvas) {
+	// Initialize the WebGL context
+	// returns the context 
+	const gl = canvas.getContext("webgl");
+
+	// Only continue if WebGL is available and working
+	if (gl === null) {
+		alert("Unable to initialize WebGL\n"+ 
+			+ "Your browser or machine may not support it.");
+  	}
+
+    return gl;
+}
+
+//
+// Provides requestAnimationFrame in a cross browser way.
+//
+// Source Angel/Shreiner book tools
+// 
+window.requestAnimFrame = (function() {
+	return window.requestAnimationFrame ||
+		window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		window.oRequestAnimationFrame ||
+		window.msRequestAnimationFrame ||
+		function(callback, element) {
+			window.setTimeout(callback, 1000 / 60);
+		};
+})();
+
+//
+//	initialize vertex and fragment shaders
+//  Source: Angel/Shreiner book tools
+//
+
+// this function initializes the vertex and fragment shaders
+function initShaders(gl, vertexShaderId, fragmentShaderId ) {
+	let vertShdr, fragShdr;
+
+	let vertElem = document.getElementById( vertexShaderId );
+	if (!vertElem) {
+		alert( "Unable to load vertex shader " + vertexShaderId );
+		return -1;
+	}
+	else {
+		// create the vertex shader  
+		vertShdr = gl.createShader(gl.VERTEX_SHADER);
+
+		// read it as a string
+		gl.shaderSource(vertShdr, vertElem.text);
+
+		// compile it
+		gl.compileShader(vertShdr);
+
+		// print error logs if compilation failed
+		if (!gl.getShaderParameter(vertShdr, gl.COMPILE_STATUS) ) {
+			let msg = "Vertex shader failed to compile.  The error log is:"
+				+ "<pre>" + gl.getShaderInfoLog( vertShdr ) + "</pre>";
+			alert( msg );
+			return -1;
+		}
+	}
+
+	// get the fragment shader source (string) and then compile it
+	let fragElem = document.getElementById( fragmentShaderId );
+	if (!fragElem) {
+		alert( "Unable to load vertex shader " + fragmentShaderId );
+		return -1;
+	}
+	else {
+		// create a fragment shader
+		fragShdr = gl.createShader(gl.FRAGMENT_SHADER);
+
+		// read it as a string
+		gl.shaderSource(fragShdr, fragElem.text);
+
+		// compile it
+		gl.compileShader( fragShdr );
+
+		// print error logs if compilation failed
+		if (!gl.getShaderParameter(fragShdr, gl.COMPILE_STATUS)) {
+			let msg = "Fragment shader failed to compile.  The error log is:"
+				+ "<pre>" + gl.getShaderInfoLog( fragShdr ) + "</pre>";
+			alert( msg );
+			return -1;
+		}
+	}
+
+	// create  a shader program 
+	let program = gl.createProgram();
+
+	// attach the two shaders to the program
+	gl.attachShader(program, vertShdr);
+	gl.attachShader(program, fragShdr);
+
+	// link the program
+	gl.linkProgram(program);
+
+	// if linking failed, print error log
+	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+		let msg = "Shader program failed to link.  The error log is:"
+			+ "<pre>" + gl.getProgramInfoLog( program ) + "</pre>";
+		alert( msg );
+		return -1;
+	}
+	return program;
+}
+
+function flatten( v ) {
+
+	// This function takes Javascript arrays and flattens it into 
+	// a set of floating point values; this is required since Javascript
+	// arrays, being objects, cannot be passed to GL buffers directly,
+	// buffers expect raw float (or whatever type chose)  values
+
+	// For matrices, column major is expected by it, so this function 
+	// transposes them for convenience and then flattens it
+
+	if (v.matrix === true) {
+		v = transpose(v);
+	}
+
+	var n = v.length;
+	var elemsAreArrays = false;
+
+	if (Array.isArray(v[0])) {
+		elemsAreArrays = true;
+		n *= v[0].length;
+	}
+
+	var float_vals = new Float32Array(n);
+
+	if (elemsAreArrays) {
+		var idx = 0;
+		for ( var i = 0; i < v.length; ++i ) {
+			for ( var j = 0; j < v[i].length; ++j ) {
+				float_vals[idx++] = v[i][j];
+			}
+		}
+	}
+	else {
+		for ( var i = 0; i < v.length; ++i ) {
+			float_vals[i] = v[i];
+		}
+	}
+
+	return float_vals;
+}
+
+
+</script>
+<script type="text/javascript">
+//
+//  initShaders.js
+//
+//
+// this function initializes the vertex and fragment shaders
+function initShaders( gl, vertexShaderId, fragmentShaderId ) {
+	var vertShdr;
+	var fragShdr;
+
+	var vertElem = document.getElementById( vertexShaderId );
+	if ( !vertElem ) {
+		alert( "Unable to load vertex shader " + vertexShaderId );
+		return -1;
+	}
+	else {
+		// get the vertex shader source (string) and then compile it
+
+		// create the vertex shader  
+		vertShdr = gl.createShader(gl.VERTEX_SHADER);
+
+		// read it - as a string
+		gl.shaderSource( vertShdr, vertElem.text );
+
+		// compile it
+		gl.compileShader( vertShdr );
+
+		// print error logs if compilation failed
+		if ( !gl.getShaderParameter(vertShdr, gl.COMPILE_STATUS) ) {
+			var msg = "Vertex shader failed to compile.  The error log is:"
+				+ "<pre>" + gl.getShaderInfoLog( vertShdr ) + "</pre>";
+			alert( msg );
+			return -1;
+		}
+	}
+
+	// get the fragment shader source (string) and then compile it
+	var fragElem = document.getElementById( fragmentShaderId );
+	if ( !fragElem ) {
+		alert( "Unable to load vertex shader " + fragmentShaderId );
+		return -1;
+	}
+	else {
+		// create a fragment shader
+		fragShdr = gl.createShader( gl.FRAGMENT_SHADER );
+
+		// read it as a string
+		gl.shaderSource( fragShdr, fragElem.text );
+
+		// compile it
+		gl.compileShader( fragShdr );
+
+		// print error logs if compilation failed
+		if ( !gl.getShaderParameter(fragShdr, gl.COMPILE_STATUS) ) {
+			var msg = "Fragment shader failed to compile.  The error log is:"
+				+ "<pre>" + gl.getShaderInfoLog( fragShdr ) + "</pre>";
+			alert( msg );
+			return -1;
+		}
+	}
+
+	// create  a shader program 
+	var program = gl.createProgram();
+
+	// attach the two shaders to the program
+	gl.attachShader( program, vertShdr );
+	gl.attachShader( program, fragShdr );
+
+	// link the program
+	gl.linkProgram( program );
+
+	// if linking failed, print error log
+	if ( !gl.getProgramParameter(program, gl.LINK_STATUS) ) {
+		var msg = "Shader program failed to link.  The error log is:"
+			+ "<pre>" + gl.getProgramInfoLog( program ) + "</pre>";
+		alert( msg );
+		return -1;
+	}
+	return program;
+}
+
+</script>
+<script type="text/javascript">
+
+// some globals
+/** @type {WebGLRenderingContext} */
+var gl;
+
+var vertices = [];
+
+var delay = 10;
+var direction = true;
+
+var program;
+
+var u_time;
+var time = 0;
+
+var u_resolution;
+
+var canvas;
+
+
+let rcolor = () => {
+	return [Math.random(), Math.random(), Math.random(), 1.];
+}
+
+
+// Your GL program starts after the HTML page is loaded, indicated
+// by the onload event
+window.onload = function init() {
+	
+	// get the canvas handle from the document's DOM
+    canvas = document.getElementById( "gl-canvas" );
+    
+	// initialize webgl, returns gl context (handle to the drawing canvas)
+	gl = initWebGL(canvas)
+
+	// check for errors
+    if (!gl) { 
+		alert( "WebGL isn't available" ); 
+	}
+
+    // specify viewing surface geometry to display your drawings
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+	// clear the display with a background color 
+	// specified as R,G,B triplet in 0-1.0 range
+    gl.clearColor( 0.7, 0.7, 0.7, 1.0 );
+
+    //  Initialize and load shaders -- all work done in init_shaders.js
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
+
+	// make this the current shader program
+    gl.useProgram( program );
+
+	// we are also going manipulate the vertex color, so get its location
+	u_time = gl.getUniformLocation(program, "u_time");
+	u_resolution = gl.getUniformLocation(program, "u_resolution");
+
+	// set an initial color for all vertices
+	gl.uniform1f(u_time, 0.0)
+	gl.uniform2fv(u_resolution, flatten([512,512]));
+
+	// create a vertex buffer - this will hold all vertices
+    vBuffer = gl.createBuffer();
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+	
+	updateBuffers();
+
+	// render the square
+    render();
+};
+
+function updateBuffers() {
+	// make the needed GL calls to tranfer vertices
+
+	vertices = [];
+	vertices.push([-1, 1])
+	vertices.push([ 1, 1]); 
+	vertices.push([-1,-1]);
+	
+	vertices.push([ 1, 1]); 
+	vertices.push([-1,-1]);
+	vertices.push([ 1,-1]);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+	
+	var vPosition = gl.getAttribLocation( program, "vPosition");
+
+	// specify the format of the vertex data - here it is a float with
+	// 2 coordinates per vertex - these are its attributes
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+
+	// enable the vertex attribute array 
+	gl.enableVertexAttribArray(vPosition);
+
+}
+
+var is_increasing = true;
+
+function render() {
+
+	if (time >= 255 && is_increasing) {
+		is_increasing = false;
+	} else if (time <= 0 && !is_increasing) {
+		is_increasing = true;
+	}
+
+	if (is_increasing) ++time;
+	else --time;
+
+	// clear the display with the background color
+    gl.clear( gl.COLOR_BUFFER_BIT );
+	
+	// set the color in the shader
+	gl.uniform1f(u_time, time);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    
+
+    setTimeout(
+        function (){requestAnimFrame(render);}, delay
+    );
+}
+
+</script>
+
+</head>   
+
+<body>
+
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>

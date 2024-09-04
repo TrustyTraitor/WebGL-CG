@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<title>Simple Anim</title>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec2 vPosition;
+
+// varying type variable to share with fragment shader, as the color
+// will be sent to the fragment shader
+//varying vec4 fColor;
+
+void main() {
+	gl_Position.x = vPosition.x;
+    gl_Position.y = vPosition.y;
+	gl_Position.z = 0.0;
+	gl_Position.w = 1.0;
+
+	gl_PointSize = 10.0;
+
+	// pass the color to the fragment shader
+	//fColor = vColor;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+	precision mediump float;
+	
+	uniform vec2 u_resolution;
+	uniform float u_time;
+	
+	void main() {
+		float norm_time = u_time/255.0;
+
+		vec2 st = gl_FragCoord.xy/u_resolution;
+		gl_FragColor = vec4(st.x,st.y,norm_time,1.0);
+	}
+
+</script>
+
+<script type="text/javascript" src="./common_files/utils.js"></script>
+<script type="text/javascript" src="./common_files/initShaders.js"></script>
+<!-- <script type="text/javascript" src="./device_to_ndc.js"></script> -->
+<script type="text/javascript" src="./testing.js"></script>
+
+<style>
+	body, canvas {
+		width: 100%;
+		height:100%;
+		margin: 0;
+	}
+</style>
+
+</head>   
+
+<body>
+
+<canvas id="gl-canvas" >
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+</body>
+</html>
