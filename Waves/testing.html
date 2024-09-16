@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<title>Simple Wave Anim</title>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+	attribute vec2 vPosition;
+	uniform float u_time;
+
+	varying float f_time;
+
+	void main() {
+		float norm_time = u_time/255.0;
+
+		gl_Position.x = vPosition.x;
+		gl_Position.y = sin(5.0*(vPosition.x+u_time))/5.0;
+		gl_Position.z = 0.0;
+		gl_Position.w = 1.0;
+
+		gl_PointSize = 7.0;
+
+		f_time = u_time;
+	}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+	precision mediump float;
+	
+	uniform vec2 u_resolution;
+	varying float f_time;
+	
+	void main() {
+		float norm_time = f_time/255.0;
+
+		vec2 st = gl_FragCoord.xy/u_resolution;
+		gl_FragColor = vec4(st.x,st.y,norm_time,1.0);
+	}
+
+</script>
+
+<script type="text/javascript" src="./common_files/utils.js"></script>
+<script type="text/javascript" src="./common_files/initShaders.js"></script>
+<!-- <script type="text/javascript" src="./device_to_ndc.js"></script> -->
+<script type="text/javascript" src="./testing.js"></script>
+
+<style>
+	#arb {
+		width: 512px;
+		height:512px;
+		margin: 0;
+	}
+</style>
+
+</head>   
+
+<body>
+
+<label for="DrawVerts">Draw vertices for segments:</label>
+<input type="checkbox" name="DrawVerts" id="DrawVerts">
+
+<label for="SegmentCount">Number of Segments:</label>
+<input type="number" name="SegmentCount" id="SegmentCount" step="1" min="1" max="4096">
+<br>
+
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+</body>
+</html>
