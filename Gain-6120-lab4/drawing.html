@@ -1,28 +1,27 @@
 <!DOCTYPE html>
 <html>
 
-<title>Lab 3: Bounding Boxes</title>
+<title>Lab 4</title>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
-attribute vec2 vPosition;
-attribute vec4 vColor;
+attribute vec4 vPosition;
+attribute vec3 vColor;
 
-uniform vec4 vertColor;
+uniform mat4 ndcMat;
+
+//uniform vec4 vertColor;
 
 // varying type variable to share with fragment shader, as the color
 // will be sent to the fragment shader
 varying vec4 fColor;
 
 void main() {
-	gl_Position.x = vPosition.x;
-    gl_Position.y = vPosition.y;
-	gl_Position.z = 0.0;
-	gl_Position.w = 1.0;
+	gl_Position = vPosition;
 
 	gl_PointSize = 10.0;
 
 	// pass the color to the fragment shader
-	fColor = vColor;
+	fColor = vec4(vColor.r, vColor.g, vColor.b, 1.0);
 }
 </script>
 
@@ -40,20 +39,24 @@ void main() {
 
 </script>
 
+<!-- Matrix Utils -->
+<script type="text/javascript" src="./common_files/mat_vec.js"></script>
+<script type="text/javascript" src="./common_files/xform2.js"></script>
+
 <script type="text/javascript" src="./common_files/utils.js"></script>
 <script type="text/javascript" src="./common_files/initShaders.js"></script>
-<script type="text/javascript" src="./device_to_ndc.js"></script>
+<!-- <script type="text/javascript" src="./device_to_ndc.js"></script> -->
 <script type="text/javascript" src="./drawing.js"></script>
 </head>   
 
 <body>
-<p id="fps_display"> </p>
-<label for="DrawVerts">Show triangle verts: </label>
-<input type="checkbox" name="DrawVerts" id="DrawVerts">
-<br>
 
-<canvas id="gl-canvas" width="512" height="512">
+<canvas id="gl-canvas" width="512" height="512" >
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
+
+<p id="device-coords"> </p>
+<p id="ndc-coords"> </p>
+<p id="world-coords"> </p>
 </body>
 </html>
