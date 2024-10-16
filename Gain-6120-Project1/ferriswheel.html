@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<title>Project 1: Ferris Wheel</title>
+
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec4 vColor;
+
+attribute mat4 matrix;
+
+varying vec4 fColor;
+
+void main() {
+	gl_Position = matrix * vPosition;
+
+	// pass the color to the fragment shader
+	fColor = vec4(vColor.r, vColor.g, vColor.b, 1.0);
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+// vertex color coming from vertex shader
+varying vec4 fColor;
+
+void main() {
+	// set the fragment color
+    gl_FragColor = fColor;
+}
+
+</script>
+
+<!-- Matrix Utils -->
+<script type="text/javascript" src="./common_files/mat_vec.js"></script>
+<script type="text/javascript" src="./common_files/xform2.js"></script>
+
+<script type="text/javascript" src="./common_files/utils.js"></script>
+<script type="text/javascript" src="./common_files/initShaders.js"></script>
+
+<script type="text/javascript" src="./ferriswheel.js"></script>
+</head>   
+
+<body>
+
+<canvas id="gl-canvas" width="512" height="512" >
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
