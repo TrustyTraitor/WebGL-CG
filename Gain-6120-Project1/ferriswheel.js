@@ -22,6 +22,8 @@ var matrixLoc;
 var colorLoc;
 var positionLoc;
 
+
+
 var delay = 10;
 
 let device2World_mat = () => {
@@ -67,7 +69,7 @@ let rcolor = () => {
 }
 
 
-function GetMatrices(theta) {
+function GetMatrices(theta, chairRock) {
 	let deg2rad = (deg) => {return deg * (Math.PI/180);}
 
 	let mats = [];
@@ -99,25 +101,32 @@ function GetMatrices(theta) {
 	
 	// Seat Transforms
 	for (let i = 0; i < 12; ++i) {
+		let rotation = spokeRot*i;
+		let x = 0.65 * Math.cos(rotation+theta);
+		let y = 0.65 * Math.sin(rotation+theta);
+
 		let mat = identity4();
 		mat = matMult(world2NDC_mat(), mat);
 		mat = matMult(scale4x4(0.1,0.1,1), mat);
-		mat = matMult(translate4x4(0.6, 0., 0.), mat);
-		mat = matMult(rotate4x4(spokeRot*i + theta, 'z'), mat);
+		mat = matMult(translate4x4(-0.05, 0., 0.), mat);
+		mat = matMult(rotate4x4(chairRock, 'z'), mat);
+		mat = matMult(translate4x4(x, y, 0.), mat);
 
 		let mat2 = identity4();
 		mat2 = matMult(world2NDC_mat(), mat2);
 		mat2 = matMult(scale4x4(0.1,0.1,1), mat2);
 		mat2 = matMult(rotate4x4(deg90, 'z'), mat2);
-		mat2 = matMult(translate4x4(0.6, -0.1, 0.), mat2);
-		mat2 = matMult(rotate4x4(spokeRot*i + theta, 'z'), mat2);
+		mat2 = matMult(translate4x4(-0.05, -0.1, 0.), mat2);
+		mat2 = matMult(rotate4x4(chairRock, 'z'), mat2);
+		mat2 = matMult(translate4x4(x, y, 0.), mat2);
 		
 		let mat3 = identity4();
 		mat3 = matMult(world2NDC_mat(), mat3);
 		mat3 = matMult(scale4x4(0.2,0.2,1), mat3);
 		mat3 = matMult(rotate4x4(deg90, 'z'), mat3);
-		mat3 = matMult(translate4x4(0.7, -0.1, 0.), mat3);
-		mat3 = matMult(rotate4x4(spokeRot*i + theta, 'z'), mat3);
+		mat3 = matMult(translate4x4(0.05, -0.1, 0.), mat3);
+		mat3 = matMult(rotate4x4(chairRock, 'z'), mat3);
+		mat3 = matMult(translate4x4(x, y, 0.), mat3);
 		
 		mat = transpose(mat);
 		mat2 = transpose(mat2);
@@ -206,12 +215,29 @@ window.onload = function init() {
 	gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, 16*4*60, gl.DYNAMIC_DRAW);
 
+
     render();
 };
 
 let t = 0.0;
+let ch = 0.0;
+let isRockingForward = true;
+
 function updateBuffers() {
-	t -= 0.007;
+	t -= 0.00;
+
+	if (isRockingForward) {
+		ch -= 0.005;
+
+		if (ch < -0.2) isRockingForward = false;
+	}
+	else {
+		ch += 0.005;
+
+		if (ch > 0.2) isRockingForward = true;
+	}
+
+	gl.useProgram(program);
 
 	//#region Vertex Buffer
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -228,7 +254,7 @@ function updateBuffers() {
 	//#endregion
 
 	//#region Matrix Buffer
-	matrices = GetMatrices(t);
+	matrices = GetMatrices(t, ch);
 
 	let newMats = [];
 	for (let i = 0; i < matrices.length; ++i) {
@@ -251,15 +277,6 @@ function updateBuffers() {
 	//#endregion
 }
 
-// let conv = world2NDC_mat();
-// let point1 = [1024., 1024., 0., 1.];
-// let point2 = [2048., 1024., 0., 1.];
-
-// console.log(conv);
-// console.log(matVecMult(conv, point1));
-// console.log(matVecMult(conv, point2));
-
-
 function render() {
 
 	// clear the display with the background color
@@ -276,7 +293,7 @@ function render() {
 	  );
     
 	// TODO: Draw Center Square
-	
+
 
     setTimeout(
         function (){requestAnimFrame(render);}, delay
