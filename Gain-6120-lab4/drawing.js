@@ -60,9 +60,9 @@ let getMousePosition = (event) => {
 
 	p_dev_coords.innerHTML = `Device Coords: x: ${mouse_coords[0]}  y: ${mouse_coords[1]}`;
 	p_ndc_coords.innerHTML = `NDC Coords: x: ${ndc_coords[0]}  y: ${ndc_coords[1]}`;
-	p_world_coords.innerHTML = `Device Coords: x: ${world[0]}  y: ${world[1]}`;
+	p_world_coords.innerHTML = `World Coords: x: ${world[0]}  y: ${world[1]}`;
 
-	return ndc_coords;
+	return world;
 }
 
 let rcolor = () => {

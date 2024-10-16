@@ -16,7 +16,7 @@ uniform mat4 ndcMat;
 varying vec4 fColor;
 
 void main() {
-	gl_Position = vPosition;
+	gl_Position = ndcMat * vPosition;
 
 	gl_PointSize = 10.0;
 

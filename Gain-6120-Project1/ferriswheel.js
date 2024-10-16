@@ -10,7 +10,7 @@ var canvas;
 
 var matrices = [];
 var colors = [];
-var numInstances = 24+12;
+var numInstances = 24+(12*3);
 
 var program;
 
@@ -72,36 +72,58 @@ function GetMatrices(theta) {
 
 	let mats = [];
 
-	let spokeRot = deg2rad(30);
-	let spoke2addRot = deg2rad(3);
+	let spokeRot = deg2rad(360/12);
+	let spoke2addRot = deg2rad(-3);
 
 	// Spoke Transforms
 	for (let i = 0; i < 12; ++i) {
 		let mat = identity4();
+		mat = matMult(world2NDC_mat(), mat);
 		mat = matMult(rotate4x4(spokeRot*i, 'z'), mat);
 		mat = matMult(rotate4x4(theta, 'z'), mat);
-		mat = matMult(scale4x4(0.6,1,1), mat);
+		mat = matMult(scale4x4(0.65,0.65,1), mat);
 		
 		let mat2 = identity4();
+		mat2 = matMult(world2NDC_mat(), mat2);
 		mat2 = matMult(rotate4x4( (spokeRot*i)+spoke2addRot , 'z'), mat2);
 		mat2 = matMult(rotate4x4(theta, 'z'), mat2);
-		mat2 = matMult(scale4x4(0.6,1,1), mat2);
+		mat2 = matMult(scale4x4(0.65,0.65,1), mat2);
 		
-		mats.push(mat);
-		mats.push(mat2);
+		mat = transpose(mat);
+		mat2 = transpose(mat2);
+		
+		mats.push(mat, mat2);
 	}
 	
 	let deg90 = deg2rad(90);
-
+	
 	// Seat Transforms
 	for (let i = 0; i < 12; ++i) {
 		let mat = identity4();
-		mat = matMult(rotate4x4(-deg90, 'z'), mat);
-		mat = matMult(translate4x4(0.5, 0.5, 0.), mat);
-		// mat = matMult(rotate4x4(theta, 'z'), mat);
-		// mat = matMult(scale4x4(0.5, 1, 1), mat);
+		mat = matMult(world2NDC_mat(), mat);
+		mat = matMult(scale4x4(0.1,0.1,1), mat);
+		mat = matMult(translate4x4(0.6, 0., 0.), mat);
+		mat = matMult(rotate4x4(spokeRot*i + theta, 'z'), mat);
+
+		let mat2 = identity4();
+		mat2 = matMult(world2NDC_mat(), mat2);
+		mat2 = matMult(scale4x4(0.1,0.1,1), mat2);
+		mat2 = matMult(rotate4x4(deg90, 'z'), mat2);
+		mat2 = matMult(translate4x4(0.6, -0.1, 0.), mat2);
+		mat2 = matMult(rotate4x4(spokeRot*i + theta, 'z'), mat2);
 		
-		mats.push(mat);
+		let mat3 = identity4();
+		mat3 = matMult(world2NDC_mat(), mat3);
+		mat3 = matMult(scale4x4(0.2,0.2,1), mat3);
+		mat3 = matMult(rotate4x4(deg90, 'z'), mat3);
+		mat3 = matMult(translate4x4(0.7, -0.1, 0.), mat3);
+		mat3 = matMult(rotate4x4(spokeRot*i + theta, 'z'), mat3);
+		
+		mat = transpose(mat);
+		mat2 = transpose(mat2);
+		mat3 = transpose(mat3);
+
+		mats.push(mat, mat2, mat3);
 	}
 	//console.log(mats[mats.length-1]);
 	return mats;
@@ -145,7 +167,8 @@ window.onload = function init() {
 	// create a vertex buffer - this will hold all vertices
     positionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, flatten([[0., 0., 0., 1.], [1., 0., 0., 1.]]), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten([[1024., 1024., 0., 1.], [2048., 1024., 0., 1.]]), gl.STATIC_DRAW);
+	// gl.bufferData(gl.ARRAY_BUFFER, flatten([[0., 0., 0., 1.], [1., 0., 0., 1.]]), gl.STATIC_DRAW);
 
 	colorBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -228,8 +251,17 @@ function updateBuffers() {
 	//#endregion
 }
 
-var counter = 0;
+// let conv = world2NDC_mat();
+// let point1 = [1024., 1024., 0., 1.];
+// let point2 = [2048., 1024., 0., 1.];
+
+// console.log(conv);
+// console.log(matVecMult(conv, point1));
+// console.log(matVecMult(conv, point2));
+
+
 function render() {
+
 	// clear the display with the background color
     gl.clear( gl.COLOR_BUFFER_BIT );
 	
