@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Draw Application</title>
+
+<script type="text/javascript">
+
+
+// ************************************************************
+// this file has  a set of utility functions useful in WebGL programs
+//
+// Creator: Kalpathi Subramanian
+// Sources : various
+// Date: 12/23/21
+//
+// ************************************************************
+function initWebGL (canvas) {
+	// Initialize the WebGL context
+	// returns the context 
+	const gl = canvas.getContext("webgl");
+
+	// Only continue if WebGL is available and working
+	if (gl === null) {
+		alert("Unable to initialize WebGL\n"+ 
+			+ "Your browser or machine may not support it.");
+  	}
+
+    return gl;
+}
+
+//
+// Provides requestAnimationFrame in a cross browser way.
+//
+// Source Angel/Shreiner book tools
+// 
+window.requestAnimFrame = (function() {
+	return window.requestAnimationFrame ||
+		window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		window.oRequestAnimationFrame ||
+		window.msRequestAnimationFrame ||
+		function(callback, element) {
+			window.setTimeout(callback, 1000 / 60);
+		};
+})();
+
+//
+//	initialize vertex and fragment shaders
+//  Source: Angel/Shreiner book tools
+//
+
+// this function initializes the vertex and fragment shaders
+function initShaders(gl, vertexShaderId, fragmentShaderId ) {
+	let vertShdr, fragShdr;
+
+	let vertElem = document.getElementById( vertexShaderId );
+	if (!vertElem) {
+		alert( "Unable to load vertex shader " + vertexShaderId );
+		return -1;
+	}
+	else {
+		// create the vertex shader  
+		vertShdr = gl.createShader(gl.VERTEX_SHADER);
+
+		// read it as a string
+		gl.shaderSource(vertShdr, vertElem.text);
+
+		// compile it
+		gl.compileShader(vertShdr);
+
+		// print error logs if compilation failed
+		if (!gl.getShaderParameter(vertShdr, gl.COMPILE_STATUS) ) {
+			let msg = "Vertex shader failed to compile.  The error log is:"
+				+ "<pre>" + gl.getShaderInfoLog( vertShdr ) + "</pre>";
+			alert( msg );
+			return -1;
+		}
+	}
+
+	// get the fragment shader source (string) and then compile it
+	let fragElem = document.getElementById( fragmentShaderId );
+	if (!fragElem) {
+		alert( "Unable to load vertex shader " + fragmentShaderId );
+		return -1;
+	}
+	else {
+		// create a fragment shader
+		fragShdr = gl.createShader(gl.FRAGMENT_SHADER);
+
+		// read it as a string
+		gl.shaderSource(fragShdr, fragElem.text);
+
+		// compile it
+		gl.compileShader( fragShdr );
+
+		// print error logs if compilation failed
+		if (!gl.getShaderParameter(fragShdr, gl.COMPILE_STATUS)) {
+			let msg = "Fragment shader failed to compile.  The error log is:"
+				+ "<pre>" + gl.getShaderInfoLog( fragShdr ) + "</pre>";
+			alert( msg );
+			return -1;
+		}
+	}
+
+	// create  a shader program 
+	let program = gl.createProgram();
+
+	// attach the two shaders to the program
+	gl.attachShader(program, vertShdr);
+	gl.attachShader(program, fragShdr);
+
+	// link the program
+	gl.linkProgram(program);
+
+	// if linking failed, print error log
+	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+		let msg = "Shader program failed to link.  The error log is:"
+			+ "<pre>" + gl.getProgramInfoLog( program ) + "</pre>";
+		alert( msg );
+		return -1;
+	}
+	return program;
+}
+
+function flatten( v ) {
+
+	// This function takes Javascript arrays and flattens it into 
+	// a set of floating point values; this is required since Javascript
+	// arrays, being objects, cannot be passed to GL buffers directly,
+	// buffers expect raw float (or whatever type chose)  values
+
+	// For matrices, column major is expected by it, so this function 
+	// transposes them for convenience and then flattens it
+
+	if (v.matrix === true) {
+		v = transpose(v);
+	}
+
+	var n = v.length;
+	var elemsAreArrays = false;
+
+	if (Array.isArray(v[0])) {
+		elemsAreArrays = true;
+		n *= v[0].length;
+	}
+
+	var float_vals = new Float32Array(n);
+
+	if (elemsAreArrays) {
+		var idx = 0;
+		for ( var i = 0; i < v.length; ++i ) {
+			for ( var j = 0; j < v[i].length; ++j ) {
+				float_vals[idx++] = v[i][j];
+			}
+		}
+	}
+	else {
+		for ( var i = 0; i < v.length; ++i ) {
+			float_vals[i] = v[i];
+		}
+	}
+
+	return float_vals;
+}
+
+
+
+</script>
+
+
+<script type="text/javascript">
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// matrix, vector  utilities
+//
+//////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------
+function degreesToRadians(degr) {
+	// returns the radians, given degrees
+
+    return degr * Math.PI/180.0;
+}
+//----------------------------------------------------------------------------
+//
+//  Vector Constructors
+//
+function vec2(x, y) {
+	// returns a 2 element vector in homogeneous coords
+
+	return [x, y];
+}
+
+function vec2h (x, y) {
+	// returns a 2D vector in homogeneous coords
+
+	return [x, y, 1.];
+}
+
+function vec3(x, y, z) {
+	// returns a 3D vector
+
+	return [x, y, z];
+}
+function vec3h(x, y, z) {
+	// returns a 3D vector
+
+	return [x, y, z, 1.];
+}
+
+function vec3h(x, y, z, w) {
+	return [x, y, z, w];
+}
+
+//----------------------------------------------------------------------------
+//
+//  Matrix Constructors
+//
+
+function mat2() {
+	return identity2();
+}
+
+//----------------------------------------------------------------------------
+
+function mat3() {
+	return identity3 ();
+}
+//----------------------------------------------------------------------------
+
+function mat4() {
+	return identity4();
+}
+
+//----------------------------------------------------------------------------
+function identity2() {
+	// returns a 2x2 identity matrix
+	// as array of arrays for easy indexing by row
+	let m = [
+				[1.0, 0.0],
+				[0.0, 1.0]
+		   ];
+	m.matrix = true;
+
+	return m;
+}
+
+//----------------------------------------------------------------------------
+function identity3() {
+	// returns a 3x3 identity matrix
+	// as array of arrays for easy indexing by row
+	let m =  [
+				[1.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0],
+				[0.0, 0.0, 1.0],
+		   ];
+
+	m.matrix = true;
+	return m;
+}
+//----------------------------------------------------------------------------
+function identity4() {
+	// returns a 3x3 identity matrix
+	// as array of arrays for easy indexing by row
+	let m =  [
+				[1.0, 0.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0, 0.0],
+				[0.0, 0.0, 1.0, 0.0],
+				[0.0, 0.0, 0.0, 1.0],
+		   ];
+	m.matrix = true;
+	return m;
+}
+//----------------------------------------------------------------------------
+//
+//  Matrix Functions
+//
+//----------------------------------------------------------------------------
+// multiplies the matrices m1 and m2
+// assumes the matrices are of  the same dimensions
+// assumes matrices are an array of arrays
+
+function matMult(m1, m2) {
+
+    let result = [];
+
+	for (let i = 0; i < m1.length; ++i) {
+		result.push([]);
+		for (let j = 0; j < m2.length; ++j) {
+			let sum = 0.0;
+			for (let k = 0; k < m1.length; ++k) {
+				sum += m1[i][k] * m2[k][j];
+			}
+			result[i].push(sum);
+		}
+	}
+	result.matrix = true;
+	return result;
+}
+//----------------------------------------------------------------------------
+function matVecMult (m, v) {
+	if (m.length != v.length) {
+        throw "matVecMult(): num rows of matrix and length of vector mismatch!";
+	}
+
+	let result = [];
+
+    for (let i = 0; i < m.length; ++i) {
+		let sum = 0;
+    	for (let j = 0; j < m.length; ++j)
+			sum += m[i][j]*v[j];
+		result.push(sum);
+	}
+
+	return result;
+}
+//----------------------------------------------------------------------------
+
+function vecMult(v1, v2) {
+	// multiplies two vectors term by term
+	result = [];
+	if ( v1.length != v2.length ) {
+		throw "vecMult(): vectors are not the same dimension";
+	}
+
+	for (let i = 0; i < v1.length; ++i ) {
+		result.push( v1[i] * v2[i] );
+	}
+
+	return result;
+}
+
+function transpose(m) {
+	// transpose a matrix 
+    let result = [];
+    for (let i = 0; i < m.length; ++i) {
+        result.push([]);
+        for (let j = 0; j < m[i].length; ++j) {
+            result[i].push( m[j][i] );
+        }
+    }
+	result.matrix = true;
+
+    return result;
+}
+//----------------------------------------------------------------------------
+//
+// computes the dot product between vectors u and v
+//
+function dot_product (u, v) {
+    if (u.length != v.length) {
+        throw "dot_product(): vectors are not the same dimension";
+    }
+
+    let sum = 0.0;
+    for (let i = 0; i < u.length; ++i) {
+        sum += u[i] * v[i];
+    }
+
+    return sum;
+}
+//----------------------------------------------------------------------------
+// negates the vector u
+function negate( u ) {
+    let result = [];
+    for (let i = 0; i < u.length; ++i) {
+        result.push( -u[i] );
+    }
+
+    return result;
+}
+
+//----------------------------------------------------------------------------
+// computes the cross product between vectors u and v
+function cross_product(u, v) {
+    if (!Array.isArray(u) || u.length < 3) {
+        throw "cross_product(): first argument is not a vector of at least 3";
+    }
+
+    if ( !Array.isArray(v) || v.length < 3 ) {
+        throw "cross(): second argument is not a vector of at least 3";
+    }
+
+	let result = [ 
+			u[1]*v[2] - u[2]*v[1],
+			u[2]*v[0] - u[0]*v[2],
+			u[0]*v[1] - u[1]*v[0]
+		];
+
+	return result;
+}
+//----------------------------------------------------------------------------
+// magnitude of a vector
+function length(u) {
+    return Math.sqrt(dot_product(u, u));
+}
+
+//----------------------------------------------------------------------------
+// normalize a vector with or without the last component
+function normalize(u, excludeLastComponent) { 
+    if (excludeLastComponent) {
+        var last = u.pop();
+    }
+    let len = length(u);
+
+    if (!isFinite(len)) {
+        throw "normalize: vector " + u + " has zero length";
+    }
+    
+    for ( let i = 0; i < u.length; ++i ) {
+        u[i] /= len;
+    }
+
+    if (excludeLastComponent) {
+        u.push( last );
+    }
+            
+    return u;
+}
+//----------------------------------------------------------------------------
+
+
+</script>
+
+
+<script type="text/javascript">
+
+
+function translate3x3(tx, ty) {
+	trans = mat3();
+
+	trans[0][2] = tx;
+	trans[1][2] = ty;
+
+	return trans;
+}
+
+function scale3x3 (sx, sy) {
+	scale = mat3();
+
+	scale[0][0] = sx;
+	scale[1][1] = sy;
+
+	return scale;
+}
+function rotate3x3 (theta) {
+	let rot = mat3();
+	rot[0][0] =  Math.cos(theta);
+	rot[0][1] = -Math.sin(theta);
+	rot[1][0] =  Math.sin(theta);
+	rot[1][1] =  Math.cos(theta);
+
+	return rot;
+}
+
+function translate4x4(tx, ty, tz) {
+	trans = mat4();
+
+	trans[0][3] = tx;
+	trans[1][3] = ty;
+	trans[2][3] = tz;
+
+	return trans;
+}
+
+function scale4x4 (sx, sy, sz) {
+	scale = mat4();
+
+	scale[0][0] = sx;
+	scale[1][1] = sy;
+	scale[2][2] = sz;
+
+	return scale;
+}
+function rotate4x4 (theta, dim) {
+	rot = mat4();
+	switch (dim) {
+		case 'x': 
+			rot[1][1] =  Math.cos(theta);
+			rot[1][2] = -Math.sin(theta);
+			rot[2][1] =  Math.sin(theta);
+			rot[2][2] =  Math.cos(theta);
+			break;
+		case 'y': 
+			rot[0][0] =  Math.cos(theta);
+			rot[0][2] =  Math.sin(theta);
+			rot[2][0] = -Math.sin(theta);
+			rot[2][2] =  Math.cos(theta);
+			break;
+		case 'z': 
+			rot[0][0] =  Math.cos(theta);
+			rot[0][1] = -Math.sin(theta);
+			rot[1][0] =  Math.sin(theta);
+			rot[1][1] =  Math.cos(theta);
+			break;
+	}
+
+	return rot;
+}
+
+
+</script>
+
+<script type="text/javascript">
+
+var canvas;
+
+/** @type {WebGLRenderingContext} */
+var gl;
+
+var program;
+var vertexShader, fragmentShader;
+
+var delay = 50;
+
+var NumCubeVertices = 36;
+
+var cube_verts  = []; 
+var cube_vert_cols = [];
+var cube_element_indices = [];
+
+var vBuffer, cBuffer, iBuffer;
+var vColor, vPosition;
+
+var M_comp_loc;
+var theta = 0., phi = 0.;
+
+var M_comp = mat4(); 
+
+var RotSpeedInput;
+var thetaDelta = 0;
+
+// all initializations
+window.onload = function init() {
+	// get canvas handle
+	canvas = document.getElementById( "gl-canvas" );
+
+	RotSpeedInput = document.getElementById("RotSpeed");
+
+	RotSpeedInput.onchange = () => {
+		thetaDelta = parseFloat(RotSpeedInput.value);
+	}
+
+	thetaDelta = parseFloat(RotSpeedInput.value);
+	
+	// WebGL Initialization
+	gl = initWebGL(canvas);
+	if (!gl ) {
+		alert( "WebGL isn't available" );
+	}
+
+	// set up viewport
+	gl.viewport( 0, 0, canvas.width, canvas.height );
+	gl.clearColor( 0.8, 0.8, 0.0, 1.0 );
+	gl.clear( gl.COLOR_BUFFER_BIT );
+
+	// create shaders, compile and link program
+	program = initShaders(gl, "vertex-shader", "fragment-shader");
+	gl.useProgram(program);
+
+	// create the colored cube
+	createColorCube();
+
+    // buffers to hold cube vertices, colors and indices
+	vBuffer = gl.createBuffer();
+	cBuffer = gl.createBuffer();
+	iBuffer = gl.createBuffer();
+
+	// allocate and send vertices to buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten(cube_verts), gl.STATIC_DRAW);
+
+    // variables through which shader receives vertex and other attributes
+	vPosition = gl.getAttribLocation(program, "vPosition");
+	gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0 );
+	gl.enableVertexAttribArray( vPosition );	
+
+	// similarly for color buffer
+	gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer);
+	gl.bufferData( gl.ARRAY_BUFFER, flatten(cube_vert_cols), gl.STATIC_DRAW );
+
+	vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0 );
+	gl.enableVertexAttribArray(vColor );
+
+	// index buffer 
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array(cube_element_indices),
+								 gl.STATIC_DRAW);
+
+	M_comp_loc = gl.getUniformLocation(program, "M_comp");
+
+	// must enable Depth test for 3D viewing in GL
+	gl.enable(gl.DEPTH_TEST);
+
+    render();
+}
+
+// all drawing is performed here
+function render(){
+	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+	theta += thetaDelta;
+
+	// center cube
+	M_comp = matMult(rotate4x4(-10., 'x'), matMult(rotate4x4(10., 'y'),  scale4x4(0.1, 0.1, 0.1) ));
+	M_comp = matMult(rotate4x4(theta, 'x'), M_comp);
+	M_comp = matMult(rotate4x4(theta, 'y'), M_comp);
+	M_comp = matMult(rotate4x4(theta, 'z'), M_comp);
+
+	gl.uniformMatrix4fv(M_comp_loc, false, flatten(M_comp));
+	gl.drawElements(gl.TRIANGLES, NumCubeVertices, gl.UNSIGNED_BYTE, 0);
+	
+	// TODO : Cube Rotating about X
+	M_comp = scale4x4(0.1, 0.1, 0.1);
+	M_comp = matMult(translate4x4(0., 0.5, 0.), M_comp);
+	M_comp = matMult(rotate4x4(theta, 'x'), M_comp);
+	
+	gl.uniformMatrix4fv(M_comp_loc, false, flatten(M_comp));
+	gl.drawElements(gl.TRIANGLES, NumCubeVertices, gl.UNSIGNED_BYTE, 0);
+	
+	// TODO : Cube Rotation about Y
+	M_comp = scale4x4(0.1, 0.1, 0.1);
+	M_comp = matMult(translate4x4(0., 0., 0.5), M_comp);
+	M_comp = matMult(rotate4x4(theta, 'y'), M_comp);
+	
+	gl.uniformMatrix4fv(M_comp_loc, false, flatten(M_comp));
+	gl.drawElements(gl.TRIANGLES, NumCubeVertices, gl.UNSIGNED_BYTE, 0);	
+	
+	// TODO : Cube Rotation about Z
+	M_comp = scale4x4(0.1, 0.1, 0.1);
+	M_comp = matMult(translate4x4(0.5, 0., 0.), M_comp);
+	M_comp = matMult(rotate4x4(theta, 'z'), M_comp);
+
+	gl.uniformMatrix4fv(M_comp_loc, false, flatten(M_comp));
+	gl.drawElements(gl.TRIANGLES, NumCubeVertices, gl.UNSIGNED_BYTE, 0);
+	
+
+	// increment angle
+
+	setTimeout(
+      function (){requestAnimFrame(render);}, delay
+ 	);
+}
+
+function createColorCube() {
+	cube_verts = getCubeVertices();
+	cube_vert_cols = getCubeVertexColors();
+	cube_element_indices = getCubeElementIndices();
+}
+
+// create indices for each  triangle; these point to the vertex
+function getCubeElementIndices () {
+	return [
+		1, 0, 3,
+		3, 2, 1,
+		2, 3, 7,
+		7, 6, 2,
+		3, 0, 4,
+		4, 7, 3,
+		6, 5, 1,
+		1, 2, 6,
+		4, 5, 6,
+		6, 7, 4,
+		5, 4, 0,
+		0, 1, 5
+	];
+}
+
+function getCubeVertices() {
+	return [
+        vec3( -1.00, -1.00,  1.00 ),
+        vec3( -1.00,  1.00,  1.00 ),
+        vec3(  1.00,  1.00,  1.00 ),
+        vec3(  1.00, -1.00,  1.00 ),
+        vec3( -1.00, -1.00,  -1.00 ),
+        vec3( -1.00,  1.00,  -1.00 ),
+        vec3(  1.00,  1.00,  -1.00 ),
+        vec3(  1.00, -1.00,  -1.00 )
+    ];
+}
+function getCubeVertexColors() {
+	let cols = [];
+	for (let k = 0; k < 8; k++)
+		cols.push (Math.random(), Math.random(), Math.random(), 1.);
+
+	return cols;
+}
+
+
+
+</script>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec3 vPosition;
+attribute vec3 vColor;
+varying vec4 color;
+
+uniform mat4 M_comp;
+
+void main() {
+	gl_Position = M_comp*vec4(vPosition, 1.);
+	color = vec4(vColor, 1.);
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+varying vec4 color;
+
+void main() {
+	gl_FragColor = color;
+}
+</script>
+
+
+
+</head>
+<body>
+	<label for="RotSpeed">Rotation Speed: </label>
+	<input type="range" name="RotSpeed" id="RotSpeed" min="0.0" max="1.0" step="0.01" value="0.05">
+	<br>
+<div style="float:left">
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<p>
+
+
+</body>
+
+</html>
