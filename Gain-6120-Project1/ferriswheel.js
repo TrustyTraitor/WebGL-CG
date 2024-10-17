@@ -3,16 +3,20 @@
 /** @type {WebGLRenderingContext} */
 var gl;
 
-/** @type {WebGL}*/
+/** @type {ANGLE_instanced_arrays}*/
 var ext;
 
 var canvas;
 
 var matrices = [];
 var colors = [];
-var numInstances = 24+(12*3);
+var numInstances = 24+(12*6);
 
 var program;
+
+var squareBuffer;
+var squareColorBuffer;
+var squareMatrixBuffer;
 
 var positionBuffer;
 var colorBuffer;
@@ -22,54 +26,20 @@ var matrixLoc;
 var colorLoc;
 var positionLoc;
 
-
-
 var delay = 10;
+var sc = 0.9;
 
-let device2World_mat = () => {
-	
-	const rect = canvas.getBoundingClientRect();
-
-	let origin_translate = translate4x4(-rect.left, -rect.top, 0);
-	let scale_window = scale4x4(1/canvas.width, 1/canvas.height, 1);
-	let scale_to_world = scale4x4(2048,2048, 1);
-	let trans_to_world_o = translate4x4(0,-2048, 0);
-	let reflect_x = scale4x4(1,-1, 1);
-
-	let computed = matMult(scale_window, origin_translate);
-	computed = matMult(scale_to_world, computed);
-	computed = matMult(trans_to_world_o, computed);
-	computed = matMult(reflect_x, computed);
-
-	return computed;
-}
+var scaleSlider;
 
 let world2NDC_mat = () => {
 	let translate = translate4x4(-1024, -1024, 0);
-	let scale = scale4x4(1/1024, 1/1024, 1);
+	let sc = scale4x4(1/1024, 1/1024, 1);
 
-	return matMult(scale, translate);
-}
-
-// Returns mouse coordinates in the custom world coordinates
-let getMousePosition = (event) => {
-
-	let conversion_mat = device2World_mat();
-	let mouse_coords = [event.clientX, event.clientY, 0.0, 1.0];
-
-	let world = matVecMult(conversion_mat, mouse_coords);
-
-	let ndc_coords = matVecMult(world2NDC_mat(), world);
-
-	return ndc_coords;
-}
-
-let rcolor = () => {
-	return [Math.random(), Math.random(), Math.random()];
+	return matMult(sc, translate);
 }
 
 
-function GetMatrices(theta, chairRock) {
+function GetMatrices(theta, chairRock, scale) {
 	let deg2rad = (deg) => {return deg * (Math.PI/180);}
 
 	let mats = [];
@@ -77,19 +47,20 @@ function GetMatrices(theta, chairRock) {
 	let spokeRot = deg2rad(360/12);
 	let spoke2addRot = deg2rad(-3);
 
+
 	// Spoke Transforms
 	for (let i = 0; i < 12; ++i) {
 		let mat = identity4();
 		mat = matMult(world2NDC_mat(), mat);
 		mat = matMult(rotate4x4(spokeRot*i, 'z'), mat);
 		mat = matMult(rotate4x4(theta, 'z'), mat);
-		mat = matMult(scale4x4(0.65,0.65,1), mat);
+		mat = matMult(scale4x4(scale,scale,1), mat);
 		
 		let mat2 = identity4();
 		mat2 = matMult(world2NDC_mat(), mat2);
 		mat2 = matMult(rotate4x4( (spokeRot*i)+spoke2addRot , 'z'), mat2);
 		mat2 = matMult(rotate4x4(theta, 'z'), mat2);
-		mat2 = matMult(scale4x4(0.65,0.65,1), mat2);
+		mat2 = matMult(scale4x4(scale,scale,1), mat2);
 		
 		mat = transpose(mat);
 		mat2 = transpose(mat2);
@@ -102,39 +73,67 @@ function GetMatrices(theta, chairRock) {
 	// Seat Transforms
 	for (let i = 0; i < 12; ++i) {
 		let rotation = spokeRot*i;
-		let x = 0.65 * Math.cos(rotation+theta);
-		let y = 0.65 * Math.sin(rotation+theta);
+		let x = scale * Math.cos(rotation+theta);
+		let y = scale * Math.sin(rotation+theta);
 
 		let mat = identity4();
 		mat = matMult(world2NDC_mat(), mat);
-		mat = matMult(scale4x4(0.1,0.1,1), mat);
-		mat = matMult(translate4x4(-0.05, 0., 0.), mat);
+		mat = matMult(scale4x4(0.1*scale,0.1*scale,1*scale), mat);
+		mat = matMult(translate4x4(-0.05*scale, 0., 0.), mat);
 		mat = matMult(rotate4x4(chairRock, 'z'), mat);
 		mat = matMult(translate4x4(x, y, 0.), mat);
 
 		let mat2 = identity4();
 		mat2 = matMult(world2NDC_mat(), mat2);
-		mat2 = matMult(scale4x4(0.1,0.1,1), mat2);
+		mat2 = matMult(scale4x4(0.1*scale,0.1*scale,1*scale), mat2);
 		mat2 = matMult(rotate4x4(deg90, 'z'), mat2);
-		mat2 = matMult(translate4x4(-0.05, -0.1, 0.), mat2);
+		mat2 = matMult(translate4x4(-0.05*scale, -0.1*scale, 0.), mat2);
 		mat2 = matMult(rotate4x4(chairRock, 'z'), mat2);
 		mat2 = matMult(translate4x4(x, y, 0.), mat2);
 		
 		let mat3 = identity4();
 		mat3 = matMult(world2NDC_mat(), mat3);
-		mat3 = matMult(scale4x4(0.2,0.2,1), mat3);
+		mat3 = matMult(scale4x4(0.2*scale,0.2*scale,1*scale), mat3);
 		mat3 = matMult(rotate4x4(deg90, 'z'), mat3);
-		mat3 = matMult(translate4x4(0.05, -0.1, 0.), mat3);
+		mat3 = matMult(translate4x4(0.05*scale, -0.1*scale, 0.), mat3);
 		mat3 = matMult(rotate4x4(chairRock, 'z'), mat3);
 		mat3 = matMult(translate4x4(x, y, 0.), mat3);
 		
+		// Secondary
+		let mat4 = identity4();
+		mat4 = matMult(world2NDC_mat(), mat4);
+		mat4 = matMult(scale4x4(0.1*scale,0.1*scale,1*scale), mat4);
+		mat4 = matMult(translate4x4(-0.05*scale, 0.02*scale, 0.), mat4);
+		mat4 = matMult(rotate4x4(chairRock, 'z'), mat4);
+		mat4 = matMult(translate4x4(x, y, 0.), mat4);
+
+		let mat5 = identity4();
+		mat5 = matMult(world2NDC_mat(), mat5);
+		mat5 = matMult(scale4x4(0.1*scale,0.1*scale,1*scale), mat5);
+		mat5 = matMult(rotate4x4(deg90, 'z'), mat5);
+		mat5 = matMult(translate4x4(-0.03*scale, -0.1*scale, 0.), mat5);
+		mat5 = matMult(rotate4x4(chairRock, 'z'), mat5);
+		mat5 = matMult(translate4x4(x, y, 0.), mat5);
+		
+		let mat6 = identity4();
+		mat6 = matMult(world2NDC_mat(), mat6);
+		mat6 = matMult(scale4x4(0.2*scale,0.2*scale,1*scale), mat6);
+		mat6 = matMult(rotate4x4(deg90, 'z'), mat6);
+		mat6 = matMult(translate4x4(0.07*scale, -0.1*scale, 0.), mat6);
+		mat6 = matMult(rotate4x4(chairRock, 'z'), mat6);
+		mat6 = matMult(translate4x4(x, y, 0.), mat6);
+		
+
 		mat = transpose(mat);
 		mat2 = transpose(mat2);
 		mat3 = transpose(mat3);
+		mat4 = transpose(mat4);
+		mat5 = transpose(mat5);
+		mat6 = transpose(mat6);
 
-		mats.push(mat, mat2, mat3);
+		mats.push(mat, mat2, mat3, mat4, mat5, mat6);
 	}
-	//console.log(mats[mats.length-1]);
+
 	return mats;
 }
 
@@ -144,6 +143,12 @@ window.onload = function init() {
 	
 	// get the canvas handle from the document's DOM
     canvas = document.getElementById( "gl-canvas" );
+
+	scaleSlider = document.getElementById("scaleSlider");
+
+	scaleSlider.onchange = () => {
+		sc = parseFloat(scaleSlider.value);
+	}
 
 	// initialize webgl, returns gl context (handle to the drawing canvas)
 	gl = initWebGL(canvas);
@@ -177,7 +182,6 @@ window.onload = function init() {
     positionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, flatten([[1024., 1024., 0., 1.], [2048., 1024., 0., 1.]]), gl.STATIC_DRAW);
-	// gl.bufferData(gl.ARRAY_BUFFER, flatten([[0., 0., 0., 1.], [1., 0., 0., 1.]]), gl.STATIC_DRAW);
 
 	colorBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -207,14 +211,39 @@ window.onload = function init() {
 		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
 		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
 		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
-		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.]  // Seats end
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], // Seats end
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], // Seats begin 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.], 
+		[1., 1., 1., 1.], [1., 1., 1., 1.], [1., 1., 1., 1.],  // Seats end
 	]),
 	gl.STATIC_DRAW);
 
 	matrixBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, 16*4*60, gl.DYNAMIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, 16*4*numInstances, gl.DYNAMIC_DRAW);
 
+
+	squareBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+	// gl.bufferData(gl.ARRAY_BUFFER, flatten([[-1126.4, -1126.4, 0., 1.], [-1126.4, 1126.4, 0., 1.], [1126.4, -1126.4, 0., 1.], [1126.4, 1126.4, 0., 1.]]), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten([[921.6, 921.6, 0., 1.], [921.6, 1126.4, 0., 1.], [1126.4, 921.6, 0., 1.], [1126.4, 1126.4, 0., 1.]]), gl.STATIC_DRAW);
+
+	squareColorBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten([[0, 8., 1., 1.]]),gl.STATIC_DRAW);
+
+	squareMatrixBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, squareMatrixBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, 16*4*60, gl.DYNAMIC_DRAW);
 
     render();
 };
@@ -224,7 +253,7 @@ let ch = 0.0;
 let isRockingForward = true;
 
 function updateBuffers() {
-	t -= 0.00;
+	t += 0.005;
 
 	if (isRockingForward) {
 		ch -= 0.005;
@@ -254,7 +283,8 @@ function updateBuffers() {
 	//#endregion
 
 	//#region Matrix Buffer
-	matrices = GetMatrices(t, ch);
+	matrices = GetMatrices(t, ch, sc);
+
 
 	let newMats = [];
 	for (let i = 0; i < matrices.length; ++i) {
@@ -277,24 +307,73 @@ function updateBuffers() {
 	//#endregion
 }
 
+function updateSquareBuffers() {
+
+	gl.useProgram(program);
+
+	//#region Vertex Buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+	gl.enableVertexAttribArray(positionLoc);
+	gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, true, 0, 0);
+	//#endregion
+
+	//#region Color Buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
+	gl.enableVertexAttribArray(colorLoc);
+	gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+
+	ext.vertexAttribDivisorANGLE(colorLoc, 1);
+	//#endregion
+
+	//#region Matrix Buffer
+	matrices = [transpose(
+		matMult(scale4x4(0.7*sc,0.7*sc,1.*sc), world2NDC_mat())
+	)];
+
+	let newMats = [];
+	for (let i = 0; i < matrices.length; ++i) {
+		for (let j = 0; j < 4; ++j) {
+			newMats.push(matrices[i][j]);
+			newMats[i].matrix = true;
+		}
+	}
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, squareMatrixBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(newMats));
+
+	for (let i = 0; i < 4; ++i) {
+		const LOC = matrixLoc + i;
+		gl.enableVertexAttribArray(LOC);
+		gl.vertexAttribPointer(LOC, 4, gl.FLOAT, false, 16*4, i*16);
+	
+		ext.vertexAttribDivisorANGLE(LOC, 1);
+	}
+	//#endregion
+}
+
 function render() {
 
 	// clear the display with the background color
     gl.clear( gl.COLOR_BUFFER_BIT );
 	
 	updateBuffers();
-
-    //gl.drawArrays(gl.LINES, 0, 2);
 	ext.drawArraysInstancedANGLE(
 		gl.LINES,
 		0,
 		2,
 		numInstances
 	  );
-    
-	// TODO: Draw Center Square
 
 
+	updateSquareBuffers();
+	ext.drawArraysInstancedANGLE(
+		gl.TRIANGLE_STRIP,
+		0,
+		4,
+		1
+	  );
+
+	  
     setTimeout(
         function (){requestAnimFrame(render);}, delay
     );
