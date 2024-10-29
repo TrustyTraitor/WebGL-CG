@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Draw Application</title>
+<title>Lab 5B</title>
 
 <script type="text/javascript" src="./include/utils.js"></script>
 <script type="text/javascript" src="./include/mat_vec.js"></script>
@@ -29,12 +29,17 @@ void main() {
 precision mediump float;
 varying vec4 color;
 
+uniform int color_mode;
+
 void main() {
 	vec4 c = color;
 
-	c.r = c.r * (1.0-gl_FragCoord.z/gl_FragCoord.w);
-	c.g = c.g * (1.0-gl_FragCoord.z/gl_FragCoord.w);
-	c.b = c.b * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+	if (color_mode == 1) {
+		c = vec4(1.0 , 1.0 , 1.0, 1.0);
+		c.r = c.r * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+		c.g = c.g * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+		c.b = c.b * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+	}
 
 	gl_FragColor = c;
 }
@@ -44,12 +49,24 @@ void main() {
 
 </head>
 <body>
+
+<label for="togglecolor">Sets color to white and enables "fog"</label>
+<button name="togglecolor" onclick="toggleColor()">Toggle Color Mode</button>
+<p></p>
 <div style="float:left">
 <canvas id="gl-canvas" width="512" height="512">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
 <p>
 
+<button onclick="CalcMatrix([1,0,0], [0,0,0], [1,1,0])">+X</button>
+<button onclick="CalcMatrix([-1,0,0], [0,0,0], [-1,1,0])">-X</button>
+<button onclick="CalcMatrix([0,1,0], [0,0,0], [0,1,-1])">+Y</button>
+<button onclick="CalcMatrix([0,-1,0], [0,0,0], [0,-1,-1])">-Y</button>
+<button onclick="CalcMatrix([0,0,1], [0,0,0], [0,1,1])">+Z</button>
+<button onclick="CalcMatrix([0,0,-1], [0,0,0], [0,1,-1])">-Z</button>
+<button onclick="CalcMatrix([-1,1,1], [0,0,0], [-1,2,1])">UL</button>
+<button onclick="CalcMatrix([1,1,1], [0,0,0], [1,2,1])">UR</button>
 
 </body>
 
