@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Project 2</title>
+
+<script type="text/javascript" src="./include/utils.js"></script>
+<script type="text/javascript" src="./include/mat_vec.js"></script>
+<script type="text/javascript" src="./include/xform2.js"></script>
+<script type="text/javascript" src="./include/teapot.js"></script>
+<script type="text/javascript" src="./draw.js"></script>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec3 vPosition;
+attribute vec3 vColor;
+varying vec4 color;
+
+uniform mat4 M_comp;
+
+void main() {
+	gl_Position = M_comp*vec4(vPosition, 1.);
+	color = vec4(vColor, 1.);
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+varying vec4 color;
+
+//uniform int color_mode;
+
+void main() {
+	vec4 c = color;
+
+	/*
+	if (color_mode == 1) {
+		c = vec4(1.0 , 1.0 , 1.0, 1.0);
+		c.r = c.r * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+		c.g = c.g * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+		c.b = c.b * (1.0-gl_FragCoord.z/gl_FragCoord.w);
+	}*/
+
+	gl_FragColor = c;
+}
+</script>
+
+
+
+</head>
+<body>
+
+<!-- <label for="togglecolor">Sets color to white and enables "fog"</label>
+<button name="togglecolor" onclick="toggleColor()">Toggle Color Mode</button> -->
+<p></p>
+<div style="float:left">
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<p>
+
+<div class="container">
+	<div class="sibling">
+		<label for="width">Width:</label>
+		<input type="range" name="width" id="width" min="0.1" max="30" value="5" step="0.1">
+	</div>
+	<div class="sibling">
+		<label for="height">Height:</label>
+		<input type="range" name="height" id="height" min="0.1" max="30" value="5" step="0.1">
+	</div>
+</div>
+
+<div class="container">
+	<div class="sibling">
+		<label for="near">Near:</label>
+		<input type="range" name="near" id="near" min="0.1" max="201" value="6" step="0.1">
+	</div>
+	<div class="sibling">
+		<label for="far">Far:</label>
+		<input type="range" name="far" id="far" min="0.1" max="301" value="300" step="0.1">
+	</div>
+</div>
+
+
+<hr>
+
+<div class="container">
+	<div class="sibling">
+		<label for="xrot">X Rotation:</label>
+		<input type="range" name="xrot" id="xrot" min="0" max="360" value="0">
+	</div>
+	<div class="sibling">
+		<label for="yrot">Y Rotation:</label>
+		<input type="range" name="yrot" id="yrot" min="0" max="360" value="0">
+	</div>
+	<div class="sibling">
+		<label for="zrot">Z Rotation:</label>
+		<input type="range" name="zrot" id="zrot" min="0" max="360" value="0">
+	</div>
+</div>
+
+
+<style>
+	label, input {
+		display: block;
+	}
+
+	.container {
+		display: flex;
+	}
+
+</style>
+
+<!-- <button onclick="CalcMatrix([1,0,0], [0,0,0], [1,1,0])">+X</button>
+<button onclick="CalcMatrix([-1,0,0], [0,0,0], [-1,1,0])">-X</button>
+<button onclick="CalcMatrix([0,1,0], [0,0,0], [0,1,-1])">+Y</button>
+<button onclick="CalcMatrix([0,-1,0], [0,0,0], [0,-1,-1])">-Y</button>
+<button onclick="CalcMatrix([0,0,1], [0,0,0], [0,1,1])">+Z</button>
+<button onclick="CalcMatrix([0,0,-1], [0,0,0], [0,1,-1])">-Z</button>
+<button onclick="CalcMatrix([-1,1,1], [0,0,0], [-1,2,1])">UL</button>
+<button onclick="CalcMatrix([1,1,1], [0,0,0], [1,2,1])">UR</button> -->
+
+</body>
+
+</html>
